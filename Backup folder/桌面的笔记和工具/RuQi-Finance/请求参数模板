@@ -1,0 +1,26 @@
+  where: {
+可选参数://客户姓名
+          "customerName":"李剑胜",
+		  //身份证号
+          "certId":"441424199410025793",
+		  //提现单号
+		  "tradeId":"1113291459068612476767",
+		  //查询日期
+		  "loanStarttime":"2020-03-02",
+		  "loanEndtime":"2020-03-03",
+必传参数: //费用类型
+		  "feeType":"1"}
+  page: 1
+  rows: 10
+  
+		  
+        01、添加了 “还款期数  period ”，
+                “实还日期  payOffDateStarttime -> payOffDateEndtime”，
+                “还款状态  status '状态  1-待扣;2-已扣' ”，
+                另外原选的查询日期名称修改为 “应还日期  payDateStarttime ——> payDateEndtime ”，
+                费用类型把“请选择”加上。
+                
+        02、接口路径--/guarantee/install/import，，日期改回 payOffDate
+        03、先别提交。
+		
+

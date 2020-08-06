@@ -1,0 +1,77 @@
+{
+	"msg": "操作成功。",
+	"code": "0000",
+	"data": "{\"feeAmount\":28.07,\"customerId\":\"6bcd895c-7c99-4526-bd50-c244f40f5a9d\",\"cerId\":\"441424199410025793\",\"loanDate\":\"2020-01-10 18:26:59\",\"feeTypeDes\":\"担保费\",\"deductionBankNo\":[{\"bankInfoValue\":\"平安银行_10_6230580000148766855\",\"bankInfoKey\":\"平安银行 6230***********6855\"},{\"bankInfoValue\":\"平安银行_10_6230580000148788099\",\"bankInfoKey\":\"平安银行 6230***********8099\"},{\"bankInfoValue\":\"平安银行_10_6230580000180537788\",\"bankInfoKey\":\"平安银行 6230***********7788\"},{\"bankInfoValue\":\"平安银行_10_6230580000226730112\",\"bankInfoKey\":\"平安银行 6230***********0112\"},{\"bankInfoValue\":\"中国工商银行_01_6212263602099671554\",\"bankInfoKey\":\"中国工商银行 6212***********1554\"},{\"bankInfoValue\":\"平安银行_10_6230580000023879923\",\"bankInfoKey\":\"平安银行 6230***********9923\"}],\"deductionChannel\":[{\"deductionKey\":\"天下信用宝付(默认)\",\"deductionValue\":\"1150291099290439680(天下信用宝付)\"}]"}"
+}
+
+SELECT t2.coustomerId, t2.tradeId, t1.customerName, t1.certId, t2.originalBusinessSum, t2.businessDate
+FROM app_customer_indentity_info t1 LEFT JOIN app_acct_loan t2 ON t1.customerId = t2.coustomerId
+WHERE 
+-- t1.customerName = '李玉华' 
+-- t1.certId = '350821198707134515'
+t2.tradeId = '1114347295627494637318'
+;
+
+SELECT * FROM cts_extra_fee_stage_plan WHERE tradeId = '1114347295627494637318';
+
+55f7dede-735b-4f53-b6e7-9ae82951f3f6	1114347295627494637318	陈建华	430702197711188525	5000.00	2037-07-20 00:00:00
+
+
+SELECT t2.coustomerId, t2.tradeId, t1.customerName, t1.certId, t2.originalBusinessSum, t2.businessDate,p.*
+FROM app_customer_indentity_info t1 LEFT JOIN app_acct_loan t2 ON t1.customerId = t2.coustomerId
+RIGHT JOIN  cts_extra_fee_stage_plan p on t2.tradeId = p.tradeId WHERE p.tradeId = '1114347295627494637318';
+
+
+SELECT customerId,customerName,feeType, loanAmount,cerId,feeAmount,loanDate,payStatus from fee_payment_record WHERE tradeId = "1114347295627494637318" 
+and feeType = "1" ORDER BY createTime DESC limit 0, 1; 
+
+SELECT 
+t1.tradeId AS tradeId, t2.businessDate AS businessDate,
+CONCAT(LEFT(t3.customerName, 1), '**') AS customerName,
+CONCAT(LEFT(t3.certId,4), '****' ,RIGHT(t3.certId,4)) AS certId,
+t2.originalBusinessSum AS originalBusinessSum,
+t1.feeType AS feeType,
+(SELECT count(period) from cts_extra_fee_stage_plan where tradeId = t1.tradeId) AS totalPeriod,
+(SELECT SUM(feeAmount) from cts_extra_fee_stage_plan WHERE tradeId = t1.tradeId) AS totalMoney,
+t1.feeAmount AS sumReceivedAmount,
+(SELECT SUM(feeAmount) from cts_extra_fee_stage_plan WHERE tradeId = t1.tradeId AND `status` = 1) AS sumSurplusAmount,
+t1.period AS period,
+t1.payDate AS payDate,
+t1.feeAmount AS feeAmount,
+t1.feeAmount AS currentPaidAmount,
+t1.status AS status,
+t1.payOffDate AS payOffDate
+FROM 
+cts_extra_fee_stage_plan t1 LEFT JOIN app_acct_loan t2 ON t1.tradeId = t2.tradeId
+LEFT JOIN app_customer_indentity_info t3 on t2.coustomerId = t3.customerId
+WHERE 1=1
+t1.feeType = 1 
+AND t1.`status` = 2;
+
+SELECT 
+t1.tradeId AS tradeId, t2.businessDate AS businessDate,
+CONCAT(LEFT(t3.customerName, 1), '**') AS customerName,
+CONCAT(LEFT(t3.certId,4), '****' ,RIGHT(t3.certId,4)) AS certId,
+t2.originalBusinessSum AS originalBusinessSum,
+t1.feeType AS feeType,
+(SELECT count(period) from cts_extra_fee_stage_plan where tradeId = t1.tradeId) AS totalPeriod,
+(SELECT SUM(feeAmount) from cts_extra_fee_stage_plan WHERE tradeId = t1.tradeId) AS totalMoney,
+
+/*累计实收金额*/
+t1.feeAmount AS sumReceivedAmount,
+
+(SELECT SUM(feeAmount) from cts_extra_fee_stage_plan WHERE tradeId = t1.tradeId AND `status` = 1) AS sumSurplusAmount,
+t1.period AS period,
+t1.payDate AS payDate,
+t1.feeAmount AS feeAmount,
+
+/*当前实还金额*/
+t1.feeAmount AS currentPaidAmount,
+t1.status AS status,
+t1.payOffDate AS payOffDate
+FROM 
+cts_extra_fee_stage_plan t1 LEFT JOIN app_acct_loan t2 ON t1.tradeId = t2.tradeId
+LEFT JOIN app_customer_indentity_info t3 on t2.coustomerId = t3.customerId
+WHERE 1=1
+t1.feeType = 1 
+AND t1.`status` = 2;

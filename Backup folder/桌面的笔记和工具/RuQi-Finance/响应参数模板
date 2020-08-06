@@ -1,0 +1,41 @@
+{
+	"code": "0000",
+	"msg": "操作成功。",
+	"total": 454,
+	"rows": [{
+	    //提现单号
+		"tradeId": "1114347295627494637318",
+		//客户姓名
+		"customerName": "李玉华",
+		//身份证号
+		"certId": "430702197711188525",
+		//放款金额
+		"originalBusinessSum": 8900,
+		//放款日期
+		"businessDate": "2018-07-10 17:04:51",
+		//费用类型
+		"feeType": 1.0,
+		//当前还款期数
+		"period": 3.0,
+		//应还日期
+		"payDate": "2019-08-14",
+		//当前应还金额
+		"feeAmount": 250.0,
+		//当期还款结果
+		"status": 2.0,
+		//当期还款日期
+		"payOffDate": "2019-08-14"
+		
+		//总期数
+		totalPeriod
+		//总费用金额
+		totalMoney
+		//累计实收金额
+		sumReceivedAmount
+		//累计剩余金额
+		sumSurplusAmount
+		//当前实还款金额
+		currentPaidAmount
+		
+	}]
+}

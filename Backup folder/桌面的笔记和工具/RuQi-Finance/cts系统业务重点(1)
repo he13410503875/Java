@@ -1,0 +1,97 @@
+
+-------------------------提现流程------------------------------------------------
+IAppPutoutService.apply()                                 提现申请(app_business_apply)
+
+IAppPutoutService.approve()                               提现审批（向支付提现报盘），生产如期的还款计划(acct_payment_schedule)
+														  如期放款表(app_acct_loan)
+														  如期还款计划表(acct_payment_schedule)
+														  
+IMerchantsLoanAPIService.getMerchantsLoanResult()         前置放款通知财务，
+
+
+														  生成晋商放款表(jin_merchants_acct_loan)				
+														  同步晋商还款計劃
+														  晋商还款计划生成(jin_merchants_payment_schedule)
+														  如期还款计划更新(acct_payment_schedule)
+														  
+														  通知前置放款结果
+														  
+														  
+														  
+														  晋商放款表(jin_merchants_acct_loan)
+														  晋商还款计划表(jin_merchants_payment_schedule)
+
+														  推送前置(cts_send_record)
+														  推送贷后(cts_send_ermas_record)
+														  
+app_business_apply（額度申請單）
+app_acct_loan（如期放款表）
+acct_payment_schedule（如期還款計劃） 本金、利息、滯納金（逾期後會計算）、違約金（提前結清）
+jin_merchants_acct_loan（晉商放款表）
+jin_merchants_payment_schedule（晉商還款計劃）
+														  
+														  
+-------------------------还款流程------------------------------------------------														  
+IRepaymentService.amountCalculation()                     还款试算
+晋商试算()
+如期试算()
+
+IRepaymentService.stageRepay                              執行还款
+						发起方:
+							1-财务系统发起
+							2-客户主动发起
+							3-贷后系统发起
+						
+						还款类型:
+							1-提前还款  針對如期還款計劃不做更新，
+							2-结清还款
+							3-逾期还款
+							4-正常还款
+
+payment_info_offer(报盘表，记录发给支付的数据)
+payment_info_status(报盘状态表)
+repay_log(还款日志，期数)
+cts_repay_launch_record(还款执行表，记录还款方式)
+								
+CtsTransferServiceImpl.counteroffer()                     支付提现回盘和支付还款回盘
+payment_info_counteroffer(回盘记录信息)
+payment_info_status(报盘状态表，更新)
+
+
+汇信线下还款
+1.汇款申请
+2.审核
+3.审核通过后，平账
+
+晋商线下还款
+
+cts_report_servfee_settl  同步晋商还款数据
+
+
+app_business_putout 提现申请业务数据（提现申请阶段创建）
+app_putout_contract 提现合同信息表（提现申请阶段创建）
+payment_info_offer  提现报盘数据
+payment_info_status 支付清单状态表
+ 
+acct_overdue_money(AcctOverdueMoney) 逾期还款明细表
+
+
+-- 晉商還款文件，每天定時同步晉商，今天同步昨天的數據，所以會有延遲
+SELECT * FROM cts_report_servfee_settl WHERE tradeId = '529463183274749201055';
+
+-- 發給前置的數據，包括提現，還款計劃等等
+SELECT * FROM cts_send_record WHERE tradeId = '6824295696750595351032';
+
+-- 發給貸後的數據
+SELECT * FROM cts_send_ermas_record WHERE tradeId = '529463183274749201055' ORDER BY createTime DESC;
+
+Repay Q:
+1.还款报盘后未回盘
+2.结清后，无还款时间，未推送给前置
+3.线下还款未平账
+
+
+
+
+
+

@@ -1,0 +1,35 @@
+1.下载安装包。
+
+2.复制路径并打开“%LocalAppData%\Atlassian\SourceTree\”
+
+3.添加"accounts.json"文件，没有就新建。
+
+
+[
+ {
+   "$id": "1",
+   "$type": "SourceTree.Api.Host.Identity.Model.IdentityAccount, SourceTree.Api.Host.Identity",
+   "Authenticate": true,
+   "HostInstance": {
+     "$id": "2",
+     "$type": "SourceTree.Host.Atlassianaccount.AtlassianAccountInstance, SourceTree.Host.AtlassianAccount",
+     "Host": {
+       "$id": "3",
+       "$type": "SourceTree.Host.Atlassianaccount.AtlassianAccountHost, SourceTree.Host.AtlassianAccount",
+       "Id": "atlassian account"
+     },
+     "BaseUrl": "https://id.atlassian.com/"
+   },
+   "Credentials": {
+     "$id": "4",
+     "$type": "SourceTree.Model.BasicAuthCredentials, SourceTree.Api.Account",
+     "Username": "",
+     "Email": null
+   },
+   "IsDefault": false
+ }
+]
+
+4.直接打开SourceTree即可到使用界面。
+（为什么idea和SourceTree可以同步分支？
+因为idea打开跟修改的是本地的git仓库java文件代码，SourceTree（可视化git界面，就相当于git啊）肯定也会同步显示修改！）
