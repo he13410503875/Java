@@ -2,7 +2,7 @@
 
 根据需求页面编写  集装箱综合信息  “查询”  接口页面和  “下拉框”  选项接口和“详情”接口页面。
 
-![1](C:\Users\admin\Desktop\pingan\API-Development-ContInfo.assets/1.jpg)
+![1](..\pingan\API-Development-ContInfo.assets/1.jpg)
 
 ### 查询接口：
 
@@ -114,7 +114,7 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
 
 
 
-![1596627961000](C:\Users\admin\Desktop\pingan\API-Development-ContInfo.assets/1596627961000-1596628010537.png)
+![1596627961000](..\pingan\API-Development-ContInfo.assets/1596627961000-1596628010537.png)
 
 ##### Response出参字段列表：
 
@@ -269,7 +269,7 @@ public class ContInfoQueryReq{
 
 
 
-![1596631117332](C:\Users\admin\Desktop\pingan\API-Development-ContInfo.assets\1596631117332.png)
+![1596631117332](..\pingan\API-Development-ContInfo.assets\1596631117332.png)
 
 ##### where子句查询条件：
 
@@ -472,7 +472,7 @@ public Map<String, List<PortParamterCfg>> queryAllDataFromCache(){
     } else {
         Map<String, List<PortParamterCfg>> data = JSON.parseObject(cfgJson,
                 new TypeReference<Map<String, List<PortParamterCfg>>>(){
-                 }.getType());
+                 }.getType()); //3、在Fastjson中提供了一个用于处理泛型反序列化的类TypeReference,通过TypeReference能够解决类型问题
         return data;
     }
 }
