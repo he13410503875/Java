@@ -459,6 +459,12 @@ public enum ParameterCfgType { //1、写好注释和方法名。
   *
   */
 Map<String, List<PortParamterCfg>> queryAllDataFromCache(); //写好类型，写好方法名。
+
+/**
+  * 获取所有的参数配置表数据，直接查询表中数据
+  * @return
+  */ 
+//List<PortParameterCfg> queryAllDataFromDB();
 ```
 
 PortParameterCfgServiceImpl:
@@ -468,19 +474,49 @@ PortParameterCfgServiceImpl:
 public Map<String, List<PortParamterCfg>> queryAllDataFromCache(){
  String cfgJson = (String) redisUtils.get(RedisDatakeyEnum.PARAM_CFG_DATA.getRedisKey()); //1、获取redis存储数据的键值名称。框架自带的redis缓存工具类调用get方法，放入redis存储数据的键值名称。取出缓存在redis中所有的下拉框数值。类型取出来应该是Map，强转，方便下面作判断。
     if(StringUtils.isEmpty(cfgJson)) { 
-        return putParamDataToRedis(); //2、判断总值是否为空，为空则再重新获取，再存入redis中！
+        return putParamDataToRedis(); //2、判断总值是否为空，为空则调用方法重新获取总值，存入redis再返回。
     } else {
         Map<String, List<PortParamterCfg>> data = JSON.parseObject(cfgJson,
                 new TypeReference<Map<String, List<PortParamterCfg>>>(){
                  }.getType()); //3、在Fastjson中提供了一个用于处理泛型反序列化的类TypeReference,通过TypeReference能够解决类型问题
-        return data;
+        return data; //4、返回下拉框总值。
     }
+}
+
+private static final String SPLIT_CHAR = ""#@#;
+
+ /**
+   * 将参数配置表中的数据放置到redis缓存中
+   * @return
+   */
+private Map<String, List<PortParameterCfg>> putParamDataToRedis() {  //2.1、接上面第二步。写好方法名和返回类型。
+    final Map<String, List<PortParameterCfg>> data = new HashMap<~>(); //2.2、创建map集合对象。用final修饰。当用final修饰一个变量时，如果是基本数据类型的变量，则其数值一旦在初始化之后便不能更改；如果是引用类型的变量，则在对其初始化之后便不能再让其指向另一个对象。
+    List<PortParameterCfg> dbList = queryAllDataFromDB(); //2.3、调用方法，用sql语句从参数配置表获取下拉框所有数据，用集合类型对象接收。
+    dbList.forEach(cfg -> { //2.4、调用forEach（）和lamda方法遍历集合对象，cfg就是遍历的一行行数据。
+       List<PortParameterCfg> cl = data.get(cfg.getFuncModule() + SPLIT_CHAR + cfg.getParamType());//2.5、Map集合对象调用get()方法，传入拼接对应下拉框功能和类型的key值，获取下拉框总值。List集合接收。
+        if(cl == null){//2.6、判断从Map集合里取出的总值是否为空。肯定为空，map集合是新建的，啥也没有。
+           cl = new ArrayList<~>();
+           cl.add(cfg); //2.7、赋予变量cl新的集合。调用add方法保存遍历的一行下拉框数据。
+           data.put(cfg.getFuncModule() + SPLIT_CHAR + cfg.getParamType(), cl); //2.8、Map集合调用put方法，以拼接对应下拉框功能和类型的key为键值，以存储了一行下拉框数据的列表对象为value值。这就存储好了一个下拉框种类的各个值。
+        } else {
+            cl.add(cfg); //2.9、这步没啥意义。
+        }
+    });
+redisUtils.set(RedisDataKeyEnum.PARAM_CFG_DATA.getRedisKey(),JSON.toJSONString(data)); //2.10、缓存工具类调用set方法，以拼接Key为键值。redis存储对象的方式二：使用fastjson将对象转为json字符串后存储，所以把Map对象转成json字符串后为value值。以上即把下拉框总值存入redis缓存中。
+return data; //2.11、返回Map集合对象。
+} 
+
+@Override
+public List<PortParameterCfg> queryAllDataFromDB() { //2.3.1、承接上面2.3步，写好方法名和返回类型。并且在上上面的Intervice文件里写了个接口，变成接口和实现类。方便注入调用。
+    retrun mapper.queryByType(funcModule:"", paramType:""); //2.3.2、调用方法，传入下拉框功能和类型都为空。在sql语句作判断的时候即可跳过这两个条件，直接查询整张表，即可得到参数配置表所有数据。返回结果。
 }
 ```
 
 
 
 ##### Entity-redis存储键值名称枚举：
+
+第1步的枚举类。
 
 ```java
 /**
@@ -503,7 +539,37 @@ public enum RedisDataKeyEnum {
 
 
 
+#### Mapper->Xml 层：
 
+PortParameterCfgMapper.java ,  PortParameterCfg.xml  在mapper-common下。
+
+```java
+<!--表名-->
+<sql id="table">
+	port_parameter_cfg
+</sql>
+
+<sql id="where_left">
+	status = '1'
+</sql>
+
+<select id="queryByType" resultMap="BaseResultMap">
+	select
+	<include refid="Base_Column_List" />
+    from
+    <include refid="table" />
+    <where>
+    	<include refid="where_left" />
+    	<if test="funcModule != null and funcModule != ''">
+    		and func_module = #{funcModule}
+		</if>
+		<if test="paramType != null and paramType != ''">
+			and param_type = #{paramType}
+		</if>
+	</where>
+	order by param_type,param_order
+</select> //1、从参数配置表里获取所有值的sql语句。
+```
 
 
 
