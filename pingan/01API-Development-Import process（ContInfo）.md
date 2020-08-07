@@ -762,4 +762,3 @@ List<ContInfo> selectOneByContDetail(
 		order by inf.lastupdatetime desc //9、用"最后修改时间"字段排序，方便service层中只取最新的数据。也防止报多结果异常。因为不确定它是否只有一条数据。
 </select>
 ```
-
