@@ -642,7 +642,7 @@ public ContInfoQueryDetailResp detail(ContDetailReq req){ //1、写好方法名�
     List<ContInfo> dto = this.mapper.selectOneByContDetail(req.getContainerno(),
                                             req.getBl(),req.getDO()); //2、调用方法，传入从入参对象中取出的集装箱号，订舱单号和提运单号。用list集合对象接收结果。防止报多结果异常，因为是详情页，只能有一列结果数据。
     ContInfoQueryDetailResp resp = new ContInfoQueryDetailResp(); //3、新建出参类对象。
-    if(dto!=null){ //4、判断数据库实体集合对象是否为空，防止报空指针异常。
+    if(dto!=null){ //4、判断箱业务集合对象是否为空，防止报空指针异常。
         List<DangerousGoodsInfoResp> dgiList = new ArrayList<~>(); //5、新建集合对象，存储类型"危险品信息"类对象。
         if(!StringUtils.isEmpty(dto.get(0).getDangerlevel()) || !StringUtils.isEmpty(dto.get(0).getImdgunno())){ //6、用工具类判断从一列结果数据中获取的"危险品等级","危险品un码"是否为空。
             //取出"危险品信息"数据
@@ -654,7 +654,7 @@ public ContInfoQueryDetailResp detail(ContDetailReq req){ //1、写好方法名�
         resp = this.portContInfoQueryDetailMapping.entityToResp(dto.get(0)); //9、调用方法，数据库实体转出参实体。
         resp.setDangerousGoodsInfoResps(dgiList); //10、出参类对象调用set方法保存"危险品信息"类集合对象。
     } else { 
-        resp.setDangerousGoodsInfoResps(new ArrayList<~>()); //11、如果数据库实体集合对象为空，也要保存一个空的"危险品信息"列表对象。防止报空指针异常。
+        resp.setDangerousGoodsInfoResps(new ArrayList<~>()); //11、如果箱业务集合对象为空，也要保存一个空的"危险品信息"列表对象。防止报空指针异常。
     }
     return resp; //12、返回出参类结果对象。
 }
