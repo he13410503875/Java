@@ -1,4 +1,4 @@
-# 进口流程（包含集装箱综合信息）API-Development
+# 进口流程（包含集装箱综合信息）API-Development 01
 
 根据需求页面编写  集装箱综合信息  “查询”  接口页面和  “下拉框”  选项接口和“详情”接口页面。
 
@@ -391,6 +391,8 @@ public class ContInfoQueryDropBoxResp { //1、写好注解、swagger注释、方
 
 #### Service层：Intervice --> Impl
 
+PortContInfoServiceImpl.java在 portquery -impl里。
+
 ```java
 @Autowired
 private PortParameterCfgService cfgService；
@@ -406,7 +408,7 @@ resp.setContainerownerArr(getDropDataFromTable(ContInfoQueryEnum.CONTAINEROWNER.
 resp.setContainertypeArr(getDropDataFromTable(ContInfoQueryEnum.CONTAINERTYPE.getValue(),
 	ContInfoQueryEnum.CONTAINERTYPE.getName())); //5、同上。
 //中转类型
-resp.setInaimArr(cfgService.getParamCfgByType(ParameterCfgType.INAIM, cfgData)); //6、调用getParamCfgByType()方法，传入枚举类里"中转类型"的属性，传入所有"参数配置下拉框"的值，从这所有参数值的map对象里获取"中转类型"的下拉框数据。最后出参类调用set方法保存。
+resp.setInaimArr(cfgService.getParamCfgByType(ParameterCfgType.INAIM, cfgData)); //6、调用getParamCfgByType()方法，传入枚举类里"中转类型"的所有属性，传入所有"参数配置下拉框"的值，从这所有参数值的map对象里获取"中转类型"的下拉框数据。最后出参类调用set方法保存。
     ......
 }
 ```
@@ -465,6 +467,13 @@ Map<String, List<PortParamterCfg>> queryAllDataFromCache(); //写好类型，写
   * @return
   */ 
 //List<PortParameterCfg> queryAllDataFromDB();
+
+/**
+  * 获取指定参数类型的下拉框数据，返回下拉框列表数据
+  *	@param type,data
+  */
+//List<DropDownBoxResp> getParamCfgByType(ParameterCfgType type, 
+//										Map<String, List<PortParameterCfg>> data);
 ```
 
 PortParameterCfgServiceImpl:
@@ -497,7 +506,7 @@ private Map<String, List<PortParameterCfg>> putParamDataToRedis() {  //2.1、接
         if(cl == null){//2.6、判断从Map集合里取出的总值是否为空。肯定为空，map集合是新建的，啥也没有。
            cl = new ArrayList<~>();
            cl.add(cfg); //2.7、赋予变量cl新的集合。调用add方法保存遍历的一行下拉框数据。
-           data.put(cfg.getFuncModule() + SPLIT_CHAR + cfg.getParamType(), cl); //2.8、Map集合调用put方法，以拼接对应下拉框功能和类型的key为键值，以存储了一行下拉框数据的列表对象为value值。这就存储好了一个下拉框种类的各个值。
+           data.put(cfg.getFuncModule() + SPLIT_CHAR + cfg.getParamType(), cl); //2.8、Map集合调用put方法，以拼接对应下拉框功能和类型的key为键值，以存储了一行下拉框数据的列表对象为value值。它会一遍遍循环作这些操作，当结束时就存储好了一个下拉框种类的各个值。
         } else {
             cl.add(cfg); //2.9、这步没啥意义。
         }
@@ -509,6 +518,23 @@ return data; //2.11、返回Map集合对象。
 @Override
 public List<PortParameterCfg> queryAllDataFromDB() { //2.3.1、承接上面2.3步，写好方法名和返回类型。并且在上上面的Intervice文件里写了个接口，变成接口和实现类。方便注入调用。
     retrun mapper.queryByType(funcModule:"", paramType:""); //2.3.2、调用方法，传入下拉框功能和类型都为空。在sql语句作判断的时候即可跳过这两个条件，直接查询整张表，即可得到参数配置表所有数据。返回结果。
+}
+
+@Override
+public List<DropDownBoxResp> getParamCfgByType(ParameterCfgType type, 
+                                 Map<String, List<PortParameterCfg>> data){ //6.1、承接PortContInfoServiceImpl.java文件里的第六步。写好方法名和返回类型，形参是枚举类里"中转类型"的所有属性和所有"参数配置下拉框"的总值。。并且也写成接口和实现类格式。
+    List<PortParameterCfg> cfgList = data.get(type.getFuncModule() + SPLIT_CHAR + type.getParamType()); //6.2、Map集合对象调用get方法，传入拼接key值，获取对应下拉框的各个值。用list类型接收。
+    if(cfgList == null) {  
+        return new ArrayList(~); //6.3、判断list集合对象是否为空。为空则直接赋予一个空列表对象。
+    } else {
+        List<DropDownBoxResp> rs = new ArrayList<~>(); //6.4、创建list集合对象，存入对象为“基本下拉框”实体类对象。
+        cfgList.forEach(cfg -> { //6.5、调用forEach（）和lamda方法遍历集合对象。
+            if("1".equals(cfg.getshowFlag())) { //6.6、用show_flag 字段来判断是否要在下拉框中显示。
+                rs.add(new DropDownBoxResp().setValue(cfg.getParamKey()).setName(cfg.getParamVal())); //6.7、创建“基本下拉框”实体类对象，调用set方法，保存从一行列表数据里取出的"参数键值"、"参数数值"。最后list集合对象再调用add方法保存这实体类对象。一遍遍循环执行这些操作，当结束时，列表集合对象就已存储好对应下拉框的各个数值。
+            }
+        });
+        return rs; //6.8、返回列表集合对象给前端展示。
+    }
 }
 ```
 
@@ -573,55 +599,167 @@ PortParameterCfgMapper.java ,  PortParameterCfg.xml  在mapper-common下。
 
 
 
+![1596785271882](F:\Java-Route\pingan\API-Development-Import process（ContInfo）.assets\1596785271882.png)
+
+### 详情接口：
+
+#### Controller层：
+
+```java
+@PostMapping(value = "detail")
+@ApiOperation("集装箱物流信息详情页")
+@AuthPermissions("M0701B02") //1、写好提交方式、路径和swagger注释。
+public ResultBase<ContInfoQueryDetailResp> detail(@RequestBody 
+    								@Validated ContDetailReq req){ //2、新建出入参类，写好方法名。因为有多个入参，所以详情接口用Post提交，加这两个注解，并且入参用实体类。才不会出错。
+    log.info("获取集装箱物流信息详情页，入参：req={}",JSON.toJSONString(req));
+    ContInfoQueryDetailResp resp = contInfoService.detail(req); //3、调用方法，传入请求参数，接收结果。
+    return ResultUtil.ok(resp); //4、封装结果。
+}
+```
 
 
 
+#### Service层：
+
+##### Intervice:
+
+```java
+/**
+  * 集装箱综合信息详情页
+  *	@param req
+  * @return
+  */
+ContInfoQueryDetailResp detail(ContDetailReq req);
+```
 
 
 
+##### Impl:
+
+```java
+@Override
+public ContInfoQueryDetailResp detail(ContDetailReq req){ //1、写好方法名，入参类型和返回类型。
+    List<ContInfo> dto = this.mapper.selectOneByContDetail(req.getContainerno(),
+                                            req.getBl(),req.getDO()); //2、调用方法，传入从入参对象中取出的集装箱号，订舱单号和提运单号。用list集合对象接收结果。防止报多结果异常，因为是详情页，只能有一列结果数据。
+    ContInfoQueryDetailResp resp = new ContInfoQueryDetailResp(); //3、新建出参类对象。
+    if(dto!=null){ //4、判断数据库实体集合对象是否为空，防止报空指针异常。
+        List<DangerousGoodsInfoResp> dgiList = new ArrayList<~>(); //5、新建集合对象，存储类型"危险品信息"类对象。
+        if(!StringUtils.isEmpty(dto.get(0).getDangerlevel()) || !StringUtils.isEmpty(dto.get(0).getImdgunno())){ //6、用工具类判断从一列结果数据中获取的"危险品等级","危险品un码"是否为空。
+            //取出"危险品信息"数据
+            DangerousGoodsInfoResp dg = new DangerousGoodsInfoResp; 
+            dg.setDangerlevel(dto.get(0).getDangerlevel());
+            dg.setImdgunno(dto.get(0).getImdgunno()); //7、新建"危险品信息"类对象。再调用set方法保存从一列结果数据中获取的"危险品等级","危险品un码"数值。
+            dgiList.add(dg); //8、"危险品信息"类集合对象再保存"危险品信息"类对象。如上需求页面里的"危险品信息"列表就已拼装完毕！
+        }
+        resp = this.portContInfoQueryDetailMapping.entityToResp(dto.get(0)); //9、调用方法，数据库实体转出参实体。
+        resp.setDangerousGoodsInfoResps(dgiList); //10、出参类对象调用set方法保存"危险品信息"类集合对象。
+    } else { 
+        resp.setDangerousGoodsInfoResps(new ArrayList<~>()); //11、如果数据库实体集合对象为空，也要保存一个空的"危险品信息"列表对象。防止报空指针异常。
+    }
+    return resp; //12、返回出参类结果对象。
+}
+```
 
 
 
+#### Mapper层：
+
+```java
+/**
+  * 集装箱综合信息详情页
+  * @param containerno,BL,DO
+  * @return ConInfo
+  */
+List<ContInfo> selectOneByContDetail(
+	@Param("containerno") String containerno, @Param("BL") String BL, @Param("DO") String DO);
+```
 
 
 
+![1596791094864](F:\Java-Route\pingan\API-Development-Import process（ContInfo）.assets\1596791094864.png)
 
 
 
+##### Xml层：
 
+###### Response出参字段列表：
 
+```java
+<!--集装箱综合详情页结果列-->
+<sql id="Cont_Detail_List">
+	inf.containerno,inf.containertype,inf.maxweight,inf.containersize ......
+    null typeofoperation,null businessnodes,null nameofgoods,null ticketinfo,
+	null specialcaseinfo,null hotbox,  //1、 需求页面中无法确定的字段，在出参类中自己取名定义好字段。然后在sql语句中赋予空值。
+	bs.eta_time oneeta,bs.atb_time oneatb,br.eta_time twoeta,br.atb_time twoatb //2、如上需求图，一程船、二程船的ETA，ATB这四个时间是需要关联大船表、驳船表得出的。如果直接在最上面的映射列表中写如下映射关系：
+     <result column="eta_time" property="oneeta" />
+     <result column="atb_time" property="oneatb" />......  
+     //会发现info表里本来就存在有eta_time = etaTime，atb_time=atbTime 的映射关系。。如果我继续用同一个字段映射不同的别名，会成功进行映射赋值吗？
+//  答案是：不会成功。所以要对最上面映射列表中的映射关系进行改写，如下：
+    <!--进口流程-STEP1-大船订舱-集装箱业务信息 给大船船期表"eta_time""atb_time"字段取别名-->
+      <result column="oneeta" property="oneeta" />
+      <reslut column="oneatb" property="oneatb" />...... //直接用别名映射别名即可。注意写上注释说明。同时在基本实体类里也要加上这四个别名。
+ </sql>
+```
 
+###### Select语句：
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```java
+<!--集装箱综合信息详情页-->
+<select id="selectOneByContDetail" resultMap="BaseResultMap"> //1、写好注释、方法名和封装结果类型。
+	select
+	<include refid="Cont_Detail_List" />, 
+(CASE cor.relstate WHEN 'R' THEN '放行' WHEN 'B' THEN '不放行' ELSE cor.relstate END)relstate,
+(CASE cor.chkstate WHEN 'Y' THEN '是' WHEN 'N' THEN '否' ELSE cor.chkstate END)chkstate //2、写好出参字段列表，如上。
+	from
+		<include refid="table" />
+	left join (
+		select containerno,bl,do,relstate,chkstate from block_record_cont_release group by containerno,bl,do.relstate,chkstate) cor on cor.containerno = inf.containerno //3、用集装箱号左关联“集装箱码头放行信息结果表”。
+	left join 
+		(select 
+			eta_time,atb_time,avesselname,inboundvoy,owner
+          from
+            	block_record_ship_shipment
+          group by
+        		berthplanno,avesselname,evesselname,owner,imo,inboundvoy,
+   				invesselname,inbusinessvoy,outboundvoy,outvessellinecode,outbusinessvoy,
+        		terminalcodes,inagent,outagent,memo,eta_time,
+         		pob_time,etd_time,atb_time,atd_time
+         ) bs //4、左关联"大船船期信息表"，大船表跟另一张业务表合并之后有很多重复数据，需要去重。去重条件应该是原来表里的字段。才不会重复。（再回来看看！）
+     on 
+      	inf.invesselname = bs.avesselname
+      	and inf.inboundvoy = bs.inboundvoy
+      	and ifnull(inf.inowner,'') = ifnull(bs.owner,'') //4.1、如上需求图，进口流程的一程船是大船。所以用"箱业务信息表"里的"一程船名"，"一程船航次"，"一程船公司"（要作为空判断，不然云测试环境会报错。）三个字段作关联。
+   left join
+        (select eta_time,atb_time,avesselname,outboundvoy,owner from block_record_barge_shipment
+       	gruop by
+       	berthplanno,cvesselname,avesselname,owner,agent,barge_tel,imo,inboundvoy,outboundvoy
+       	invessellinecode,outvessellinecode,inbusinessvoy,outbusinessvoy,bargestartport,lastport,
+        nextport,bargeendport,bargeworkseq,memo,eta_time,atb_time,bargefeetype,inmemo,outmemo,
+         hotbox,lastupdatetime ) br
+    on
+      	inf.outvesselname = br.avesselname
+      	and inf.outboundvoy = br.outboundvoy
+      	and ifnull(inf.outowner,'') = ifnull(br.owner,'') //5、左关联"驳船船期表",去重。进口流程的二程船是驳船。所以用"箱业务信息表"里的"二程船名"，"二程船航次"，"二程船公司"三个字段作关联。（业务还不是很清楚，就看需求需要什么，要一程，还是二程，还是一程二程都要，就用什么连接给它得出值！）
+    left join
+    	block_record_cont_optin op  //6、左关联"箱操作信息表"，因为是进口，所以关联的是optin。
+   	on 
+   		(inf.containerno = op.containerno
+   		and inf.bl = op.bl)
+    	or
+    	(inf.containerno = op.containerno
+    	and inf.do = op.do) 		//7、用集装箱号和订舱单号或提运单号关联。因为集装箱号和订舱单号或提运单号就可以确定一条船。
+    <where>
+    	<if test="containerno !=null and containerno != ''">
+    		and inf.containerno = #{containerno}
+		</if>
+		<if test="BL != null and BL != ''">
+			and inf.bl = #{BL}
+		</if>
+		<if test="DO != null and DO != ''">
+		 	and inf.do = #{DO}
+		</if> 
+	</where>  //8、前端传入三个入参条件。
+		order by inf.lastupdatetime desc //9、用"最后修改时间"字段排序，方便service层中只取最新的数据。也防止报多结果异常。因为不确定它是否只有一条数据。
+</select>
+```
 
