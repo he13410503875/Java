@@ -112,6 +112,12 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
 </select>
 ```
 
+###### Tips：
+
+> 1、在mysql中，null跟null是不相等的。也就是null=null这种连接条件不成立。所以上面的"船公司"字段为有问题的null并又作为连接条件的时候，表跟表之间是连不起来的，所以没返回数据。这sql语句 ifnull（“owner”，“”）其实是把"船公司"字段变为空字符串。空字符串跟空字符串是可以相等的。
+
+
+
 
 
 ![1596627961000](..\pingan\API-Development-ContInfo.assets/1596627961000-1596628010537.png)
@@ -208,9 +214,9 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
 
 
 
-
-
 ##### Entity入参实体类：
+
++Ctrl+Shift+U，大写变小写。加快写实体类速度。
 
 ```java
 /**
@@ -610,12 +616,18 @@ PortParameterCfgMapper.java ,  PortParameterCfg.xml  在mapper-common下。
 @ApiOperation("集装箱物流信息详情页")
 @AuthPermissions("M0701B02") //1、写好提交方式、路径和swagger注释。
 public ResultBase<ContInfoQueryDetailResp> detail(@RequestBody 
-    								@Validated ContDetailReq req){ //2、新建出入参类，写好方法名。因为有多个入参，所以详情接口用Post提交，加这两个注解，并且入参用实体类。才不会出错。
+    								@Validated ContDetailReq req){ //2、新建出入参类，写好方法名。因为有多个入参，所以详情接口用Post提交，加这两个注解，并且入参用实体类。才不会出错。注意字段顺序要跟原型页面保持一致。方便以后对接口的时候，方便处理缺失代码。
     log.info("获取集装箱物流信息详情页，入参：req={}",JSON.toJSONString(req));
     ContInfoQueryDetailResp resp = contInfoService.detail(req); //3、调用方法，传入请求参数，接收结果。
     return ResultUtil.ok(resp); //4、封装结果。
 }
 ```
+
+##### Tips：
+
+> 1、提交方式为get，用@PathVariable注解会把url地址后面的参数放入形参变量。提交方式为post，用@RequestParam注解会把前段参数传入对应变量。前者注解有多个参数时，若其中一个参数为空，则可能变化为两个//斜杠而传入后台，导致报错。后者注解就不会有这个问题。但是它要多个参数都要传入，都要有值，少一个不行。后者注解用swagger测不出来。借助前端页面测试。
+>
+> 2、 一开始 集装箱详情页 我给取名为contsyn（集装箱综合），不够见名知意，乍一看以为是 箱子异步。直接contdetail 就行了。要注意。
 
 
 
@@ -689,7 +701,7 @@ List<ContInfo> selectOneByContDetail(
 <sql id="Cont_Detail_List">
 	inf.containerno,inf.containertype,inf.maxweight,inf.containersize ......
     null typeofoperation,null businessnodes,null nameofgoods,null ticketinfo,
-	null specialcaseinfo,null hotbox,  //1、 需求页面中无法确定的字段，在出参类中自己取名定义好字段。然后在sql语句中赋予空值。
+	null specialcaseinfo,null hotbox,  //1、 需求页面中产品也无法确定的字段，在出参类中自己取名定义好字段。在映射数据库实体类里也要添加定义好的字段。然后在sql的字段列表中赋予空值null。因为以后对接接口的时候可以用find迅速找到缺失的字段，好做处理！
 	bs.eta_time oneeta,bs.atb_time oneatb,br.eta_time twoeta,br.atb_time twoatb //2、如上需求图，一程船、二程船的ETA，ATB这四个时间是需要关联大船表、驳船表得出的。如果直接在最上面的映射列表中写如下映射关系：
      <result column="eta_time" property="oneeta" />
      <result column="atb_time" property="oneatb" />......  
@@ -763,3 +775,18 @@ List<ContInfo> selectOneByContDetail(
 </select>
 ```
 
+
+
+##### Tips：
+
+> 1、用swagger测试详情接口的时候，传入一个contianerno，一直显示结果为null。但是用navicat数据库软件测试一个containerno参数是可以查询出数据来的。百思不得其解。
+>
+> 查看控制台原来是swagger传过来的另外两个没值的参数为"undefinded"，会导致查询出错。我们可以在服务层代码里把这两个undefind转为空字符串""，也可以叫前端传给我空字符串，别传undefinded了！
+
+![1597215982968](F:\Java-Route\pingan\01API-Development-Import process（ContInfo）.assets\1597215982968.png)
+
+> 2、如上图 集装箱综合信息详情页面：如果sql语句连表用join ...on..where 写法，一旦箱业务表跟放行信息表没有符合where子句的相关联数据，就会整个页面返回空结果。这样不好，因为一两个字段的放行信息，就导致整个详情页面都不显示出来。只返回个null。感觉有点因小失大，所有要用left...join 左关联语法才行。根据左边"箱业务表"的数据关联"放行表"的数据，没有关联数据也不妨碍展示“箱业务表”数据。
+>
+> 3、多表查询时，关联条件字段不是只用主外键字段关联，可以用其它字段关联。
+>
+> 4、用了group by 不用再distinct。

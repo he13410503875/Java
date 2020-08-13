@@ -2,13 +2,15 @@
 
 ![1596799020908](F:\Java-Route\pingan\02API-Development-Import process.assets\1596799020908.png)
 
-### 进口流程步骤一：一程船期确认，大船船期信息-接口：
+### 进口流程步骤一：
+
+#### 一程船期确认，大船船期信息-接口：
 
 #### Controller-Service层：
 
 ```java
 @Override
-public ShipShipmentDetailResp shipShipmentInfo(ContImportQueryReq req) { //1、写好方法名、入参类型和出参类型。这个入参实体类里有好几个字段，我们只需要那三个，其它入参字段不作处理也不会报错。前端应该也是只传入了三个字段数值。
+public ShipShipmentDetailResp shipShipmentInfo(ContImportQueryReq req) { //1、写好方法名、入参类型和出参类型。
     BigShipment shipInfo = bigShipmentMapper.queryShipShipmentInfo(req); //2、调用方法，传入入参。获取"大船船期表"数据，用数据库基本实体类对象接收。
     ShipShipmentDetailResp resp = new ShipShipmentDetailResp(); //3、新建出参类。
     if(shipInfo!=null) { //4、判断大船船期数据对象是否为空。防止空指针异常。
@@ -22,6 +24,20 @@ public ShipShipmentDetailResp shipShipmentInfo(ContImportQueryReq req) { //1、�
     return resp; //8、返回出参结果对象。
 }
 ```
+
+##### Tips：
+
+> 问：如上面控制层的方法，只需要3个入参，但入参类里面超过3个入参字段了。所以可以不用多余的入参字段吗？会报错吗？
+>
+> 答：其它入参字段不作处理也不会报错。前端应该也是只传入了三个字段数值。
+>
+> 问：必填项入参如何处理？
+>
+> 答："集装箱号"字段加个@NotBlank（）注解，表示它是必填项。要跟@Validated注解一起使用，不然@NotBlank不起作用 。
+>
+> 问：请求参数字段"DO"，前端页面只能写成小写do，后端只能写成大写DO。那还能相互接收到数据吗？
+>
+> 答：照样可以接收到。。框架会帮我们从json里面自动转换成我们需要的参数。
 
 
 
@@ -49,20 +65,35 @@ public ShipShipmentDetailResp shipShipmentInfo(ContImportQueryReq req) { //1、�
      </where>
      	group by <include refid="group_Column_List" /> //5、用出参字段列表对大船船期数据进行去重。
  </select>
-    
 ```
 
+##### Tips：
+
+> 1、如上字段列表 query_Column_List  和 分组列表 group_Column_List，这两个列表的字段数量要一致。如果不一致，上传到平安云测试环境时，会因为mysql的版本不一样而报错：（我们版本是5.6.22，没问题。但是平安云测试环境的版本是5.7的，不一致就会报错。)
+>
+> Cause:com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: Expression #21 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'mszcpp.tab.update_time' which is not functionlly dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by.
+>
+> 上面这个报错信息就表示 "update_time"字段不包含在分组列表group by里，所以报错。
+>
+> 2、对修改时间进行倒序排序的时候不要用update_time,最好用 lastupdatetime 。
+>
+> 因为采数的时候不知道它采数的频率是多少次，上链的数据是怎么上的。也许10条，10条的上，也许20条，20条的上。所以update_time可能有多个值。如果要取这个值，要另写sql语句，传入多个参数。然后order by update_time desc 取最新的那个值才行。那为什么箱业务表的update_time没事呢？因为它是单条记录。。不像大船，驳船是多条记录。而update_time又有多个不同的时间。可能会导致出问题。
 
 
-### 进口流程步骤一：一程船期确认，集装箱业务信息。步骤三：跨关区调拨，集装箱业务信息--接口：（略）
+
+### 进口流程步骤一：
+
+#### 一程船期确认，集装箱业务信息。步骤三：跨关区调拨，集装箱业务信息--接口：（略）
 
 
 
 ![1596798973806](F:\Java-Route\pingan\02API-Development-Import process.assets\1596798973806.png)
 
-### 进口流程步骤二：大船作业，船作业信息查询--接口：
+### 进口流程步骤二：
 
-##### Controller-Service层：
+#### 大船作业，船作业信息查询--接口：
+
+#### Controller-Service层：
 
 ```java
 @Override
@@ -72,7 +103,7 @@ public ShipOptionDetailResp queryShipOptionInfo(ContImportQueryReq req) { //1、
     if(shipInfo != null) { //4、判断大船船期数据对象是否为空。
         List<ShipTaskment> list = shipTaskMapper.queryShipOptionInfo(
         req,shipInfo.getAvesselname(),shipInfo.getInboundvoy(),shipInfo.getOutboundvoy());//5、调用方法，传入入参实体类，传入从大船船期数据对象处获得的"船名""进口航次""出口航次"。（船名+航次 就能确定一条船?）从"集装箱操作信息表里"获取结果数据，用实体类集合对象接收。
-        if(CollectionUtils.isNotEmpty(list)) { //6、判断集装箱操作数据集合对象是否为空。注意，这里不能直接判断！=null。要用集合工具类的方法去判断这个集合对象。因为如果里面存储的对象为空，会报空指针异常。用这个工具类的方法，就能同时判断它们两个是否为空。
+        if(CollectionUtils.isNotEmpty(list)) { //6、判断集装箱操作数据集合对象是否为空。注意，这里不能直接判断！=null，因为无法判断出里面的元素是否为空。如果为空，还要去get（0）就会发生索引越界异常:java.lang.IndexOutOfBoundsException.要用集合工具类的方法CollectionUtils.isNotEmpty（bc），既可以判断这个对象为空，也可以判断里面的元素是否为空。
             ShipTaskment dto = list.get(0);
             resp = shipoptionDetailMapping.entityToResp(dto); //7、对第一条数据进行数据库实体转出参实体。
             resp.setImo(shipInfo.getImo());
@@ -90,7 +121,9 @@ public ShipOptionDetailResp queryShipOptionInfo(ContImportQueryReq req) { //1、
 
 
 
-### 进口流程步骤二：大船作业，集装箱操作信息查询--接口：（跟步骤四-驳船集装箱操作信息 作对比。）
+### 进口流程步骤二：
+
+#### 大船作业，集装箱操作信息查询--接口：（跟步骤四-驳船集装箱操作信息 作对比。）
 
 #### Mapper-Xml：
 
@@ -158,7 +191,9 @@ public ShipOptionDetailResp queryShipOptionInfo(ContImportQueryReq req) { //1、
 
 
 
-### 进口流程步骤三：跨关区调拨，驳船船期信息--接口：
+### 进口流程步骤三：
+
+#### 跨关区调拨，驳船船期信息--接口：
 
 ![3](F:\Java-Route\pingan\02API-Development-Import process.assets/3.jpg)
 
@@ -415,15 +450,21 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
 
 
 
-### 进口流程步骤四：SCCT驳船作业，驳船船作业信息查询-接口：（跟步骤二类似，略）
+### 进口流程步骤四：
+
+#### SCCT驳船作业，驳船船作业信息查询-接口：（跟步骤二类似，略）
 
 
 
-### 进口流程步骤四：SCCT驳船作业，驳船船集装箱操作信息查询-接口：（跟步骤二对比，如上。）
+### 进口流程步骤四：
+
+#### SCCT驳船作业，驳船船集装箱操作信息查询-接口：（跟步骤二对比，如上。）
 
 
 
-### 进口流程步骤四：SCCT驳船作业，驳船报道-接口：（跟步骤五-驳船报道对比。）
+### 进口流程步骤四：
+
+#### SCCT驳船作业，驳船报道-接口：（跟步骤五-驳船报道对比。）
 
 ![1597134757006](F:\Java-Route\pingan\02API-Development-Import process.assets\1597134757006.png)
 
@@ -451,7 +492,7 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
             	and cf.outboundvoy = bs.outboundvoy
             	and cf.creator_org_id='SCCT') //3、用"船名","出口航次"，"上链机构"作关联条件。
         	where
-        		cf.terminalcode in ('SCT','CCT','MCT') ) cb //4、需求要求加的港口条件。 
+        		cf.terminalcode in ('SCT','CCT','MCT') ) cb //4、需求要求加的港口条件。 那“驳船表”，“报道表”两表相连就能保证是单条记录了吗？不一定。。。因为报道表里有"码头"字段。一条船可能在这码头放几个箱子，那码头放几个箱子，数据就有多条了。所以不一定保证就是单条记录数据。
         left join
         	block_record_cont_info inf 
         on
@@ -462,7 +503,8 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
     	...
     	#{containerno},#{bl},#{DO}
     </where>
-    	order by cb.lastupdatetime desc
+    //  group by inf.containerno, inf.outvesselname 
+    	order by cb.lastupdatetime desc  //报道的结果可以去掉group by，直接用cb.lastupdatetime 或 cb.etaconfirmtime作降序排序，取最新一条的数据即可！也可以防止发生group by 与list 不一致的报错。
 </select>    	
 
 
@@ -490,7 +532,7 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
          on
          	inf.outvesselname = cb.avesselname
          	and inf.outboundvoy = cb.inboundvoy //9、箱业务信息表的"出口航次"和驳船船期表的"进口航次"作关联。
-         	and inf.creator_org_id='SCCT' //10、重点：我们"箱业务信息表"的数据源还是招商的！
+         	and inf.creator_org_id='SCCT' //10、重点：根据需求文档的要求，大环境下是进口流程，我们"箱业务信息表"的数据源是招商SCCT的。大环境下是出口流程，我们"箱业务信息表"的数据源是江门JM的！
         	and cb.creator_org_id='JM' //11、驳船报道表的数据源是江门的。因为船过去江门码头那里报道了，所以取那里的报道数据。
         <where>
         ......
@@ -498,11 +540,15 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
 
 
 
-### 进口流程步骤五：在途运输监管，驳船报道信息-接口：（跟步骤四作对比，如上。）
+### 进口流程步骤五：
+
+#### 在途运输监管，驳船报道信息-接口：（跟步骤四作对比，如上。）
 
 
 
-### 进口流程步骤六：PRD驳船作业，集装箱操作信息-接口：（跟步骤二、四作对比，如上。）
+### 进口流程步骤六：
+
+#### PRD驳船作业，集装箱操作信息-接口：（跟步骤二、四作对比，如上。）
 
 
 
@@ -565,7 +611,39 @@ public ImportProcessStatusResp queryImportProcessStatus(ContImportQueryReq req) 
 
 
 
+### 需求分析Tips：
 
+> 1、开发完接口之后，要去检查各个接口的sql查询条件是否跟word需求文档的需求一致。当初开发太急，可能漏掉。
+>
+> 2、例如："大船船期，用集装箱号+提运单号匹配集装箱信息表" 这句话需求。我认为就是join on 两表关联匹配，这是不对的。其实是用 <if  test=".." > 查询语句 去做判断匹配。就像查询条件的入参一样，也可称为匹配！像进口流程步骤一大船船期里的 "箱业务信息表"确定结果域方式，也是匹配。
+
+
+
+
+
+### 测试Tips：
+
+> 1、进口流程的全部接口都要去测试一下返回结果，可以在swagger里用containerno=“1” 作为请求参数进行测试。就是让它查不到，看看有没有报空指针异常。如果有，作判断处理。如果为空，而且resp出参实体类有几层的情况下，要 new新的实体类对象 或者 new新的列表对象 存储起来。 (可能为空指针，因为有些船还在海上，还没靠岸作业。所以sql关联报道表的时候就会为空。我们就是为了避免这种情况。)
+>
+> 2、当测试人员要求提供测试版本号。就是去拉代码的网站里点击进去merchants-port-server,然后把右上角版本号和master分支发给测试即可！
+>
+> 3、问：如何测试？
+>
+> 答：当已经把平安云测试数据都导入开发环境了。可以开始测试 "物流可视化" 各接口--以集装箱号字段"YJCN20008"为主，输入集装箱号，点击查询，点击详情，看看哪个步骤没有数值，看看哪个步骤没有亮起。然后根据他的集装箱号，订舱单号，提运单号去navicat里去查询一下，看看是真的没值还是没获取到值，再去看我们开发的原因。
+>
+> 4、当测试环境跟开发环境数据匹配不到时：如下回复领导和如下解决办法。
+>
+> @连理@马燕飞
+>
+> （1）智慧港口目前bug修复情况是：除了2个遗留的bug外，其它的bug已经修复完成。
+>
+> （2）测试环境智慧港口物流可视化无法查询到数据问题，分析如下：
+>
+> ​	1）测试环境的数据可能跟我们之前分析的情况不一致，比如现在船公司字段是空值，箱操作ID在整个进口流程中同一个箱子都一样，等等之类问题，这些数据问题可能会对我们写sql语句有影响，会导致查询不到数据，报错之类的。
+>
+> ​	2）之前有些功能报错，我们这边开发的问题，已经修复完成了。产生原因是开发环境mysql数据库版本比平安运mysql数据库版本低，导致有些SQL语句开发库可以执行，测试数据库无法执行。
+>
+> （3）现有的测试数据可能会存在没有达到需求文档要求的层次，现在我们这边需要从平安云测试环境数据库导出数据到本地开发库，利用测试数据来检查我们的功能，看看哪些功能有问题，然后再根据实际情况修复了。
 
 
 
