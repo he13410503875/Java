@@ -27,11 +27,11 @@
     
     	left join (select <include refid="ship_shipment_Clolumn_List" />
         from block_record_ship_shipment rss where creator_org_id='SCCT' group by <include refid="ship_shipment_Clolumn_List" />) ss 
-        on (ifnull(tab.inowner,'')=ifnull(ss.owner,'') and tab.invesselname=ss.avesselname and tab.inboundvoy=ss.inboundvoy) //5、关联数据源是“招商港口”的大船船期表，去重。用船公司，船名，进口航次关联。船公司在平安云测试环境为空，一旦关联条件用船公司字段数据都会为空。所以用ifnull（）解决。
+        on (ifnull(tab.inowner,'')=ifnull(ss.owner,'') and tab.invesselname=ss.avesselname and tab.inboundvoy=ss.inboundvoy) //5、关联数据源是“招商港口”的大船船期表，去重。用船公司，船名，进口航次关联。船公司在平安云测试环境值为null，一旦关联条件用船公司字段数据都会为null报错。所以用ifnull（）解决。
     
     	left join (select <include refid="barge_shipment_Clolumn_List" />
          from block_record_barge_shipment rbs where creator_org_id='SCCT' group by <include refid="ship_shipment_Clolumn_List" />) bs 
-         on (ifnull(tab.outowner,'')=ifnull(bs.owner,'') and tab.outvesselname=bs.avesselname and tab.outboundvoy=bs.outboundvoy)  //6、关联数据源是“招商港口”的驳船船期表，去重。用船公司，船名，出口航次字段，数据源是“招商”的业务信息表用二程船公司，二程船名，二程船航次字段作关联。船公司在平安云测试环境为空，一旦关联条件船公司字段数据都会为空。所以用IFNULLL()解决。
+         on (ifnull(tab.outowner,'')=ifnull(bs.owner,'') and tab.outvesselname=bs.avesselname and tab.outboundvoy=bs.outboundvoy)  //6、关联数据源是“招商港口”的驳船船期表，去重。用船公司，船名，出口航次字段，数据源是“招商”的业务信息表用二程船公司，二程船名，二程船航次字段作关联。
     
     	left join (select <include refid="barge_shipment_Clolumn_List" />
          from block_record_barge_shipment rbs where creator_org_id='JM' group by <include refid="ship_shipment_Clolumn_List" />) bsjm 
@@ -68,11 +68,7 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
     	left join (select <include refid="ship_shipment_Clolumn_List" />
         from block_record_ship_shipment rss where creator_org_id='SCCT' group by <include refid="ship_shipment_Clolumn_List" />) ss
         on (ifnull(tab.outowner,'')=ifnull(ss.owner,'') and tab.outvesselname=ss.avesselname and tab.outboundvoy=ss.outboundvoy)   //17、左关联大船船期表，关联条件变了。箱业务信息表用表示出口的 二程船公司，二程船名，二程船航次字段。 数据源为 “招商SCCT” 的大船船期表用船公司，船名，出口航次字段作关联条件。
-        
-  // 跟步骤五-在途运输监管-驳船报道的sql有何区别？ 
-  // left join  block_record_cont_info tab on tab.outvesselname=br.avesselname and tab.outboundvoy=br.inboundvoy and tab.creator_org_id='SCCT' and br.creator_org_id='JM'         步骤五是驳船表先跟报道表关联，再跟业务信息表关联。步骤五是江门的数据，但还是数据源为“招商SCCT”的业务信息表用出口船名，出口航次字段。（因为进口流程整体来说还是招商港口。）数据源为“JM江门”的驳船报道表用船名，进口航次字段作关联条件。（因为用的是驳船在江门的报道信息。）
-  // 这里跟上面的大船没啥好区别比较的。。因为一个是大船，一个是驳船报道。它主要跟下面这些驳船船期比较，但进口出口的写法又不一样。。以后再来看看哪个是对的。
-    
+
     	left join (select <include refid="barge_shipment_Clolumn_List" />
          from block_record_barge_shipment rbs where creator_org_id='SCCT' group by <include refid="ship_shipment_Clolumn_List" />) bs 
          on (ifnull(tab.inowner,'')=ifnull(bs.owner,'') and tab.invesselname=bs.avesselname and tab.inboundvoy=bs.inboundvoy) //18、左关联驳船船期表，关联条件变了。数据源为“江门”的业务信息表用一程船公司，一程船名，一程航次。数据源为“招商”驳船船期表用船公司，船名，进口航次作关联条件。
@@ -81,7 +77,6 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
     	left join (select <include refid="barge_shipment_Clolumn_List" />
          from block_record_barge_shipment rbs where creator_org_id='JM' group by <include refid="ship_shipment_Clolumn_List" />) bsjm 
          on (ifnull(tab.inowner,'')=ifnull(bsjm.owner,'') and tab.invesselname=bsjm.avesselname and tab.inboundvoy=bsjm.outboundvoy) //19、左关联驳船船期表，关联条件变了。
-         //**01、问问用哥，这里是不是写错了？驳船江门应该用进口航次关联？上面的驳船招商应该用出口航次关联？
     
  /*   	left join block_record_barge_cfmeta bc
     	on (bc.avesselname=bs.avesselname and ifnull(bc.inboundvoy,'')=ifnull(bs.inboundvoy,'') and ifnull(bc.outboundvoy,'')=ifnull(bs.outboundvoy,'')) */
@@ -101,7 +96,7 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
 	<if test="req.currentShipName != null and req.currentShipName != ''">
 		and tmp.currentShipName = #{req.currentShipName}
     </if>
-    ... = req.currentBoundvoy //23、"所在船名"，"所在船航次"字段在表里没有。只有通过上面关联表之后才会出来值。
+    ... = req.currentBoundvoy //23、为什么这里还要放一个where子句的查询条件呢？因为有些查询条件字段在表里没有。只有通过上面关联表之后才会计算出来值。比如："所在船名"，"所在船航次"字段。
     ... = req.owner //24、船公司，可能是为了航次，船名，船公司更对应查询条件。
     ... >= req.etaTimeStart //25、如下的操作时间和停泊时间也是拎出来对应查询条件吧。
     ... <  req.etaTimeEnd, interval 1 day
@@ -136,16 +131,18 @@ union all //13、上面的是进口的结果集，下面是出口的结果集，
 	(CASE op.opttype WHEN '装船' THEN '在船' WHEN '出闸' THEN '出闸' ELSE '在场箱' END) currentStatus，
 	（CASE WHEN tab.busi_type='export' THEN '出口' WHEN tab.busi_type='import' THEN '进口' ELSE null END) importExportFlag,  //1、如上需求页面的响应列表。“进口/出口”是根据业务表进出口类型字段“busi_type”的取值去判断的。
 
-	( CASE (CASE op.opttype WHEN '卸船' THEN '在场' WHEN '入闸' THEN '在场' WHEN '出闸' THEN '在场' ELSE '在船' END)
-       WHEN '在船' and tab.busi_type='import' THEN (
-       		CASE WHEN op.opttype='装船' and tab.outvesselname=op.avesselname and tab.outboundvoy=op.boundvoy THEN bs.avesselname
-            ELSE ss.avesselname END 
+	( CASE (CASE op.opttype WHEN '卸船' THEN '在场' WHEN '入闸' THEN '在场' WHEN '出闸' THEN '在场' ELSE '在船' END) //2、先判断"操作类型"字段是'卸船','入闸'还是'出闸'，从而可以判断出这个箱子是'在船'还是'在场'，再去判断箱所在的当前船名。因为我们主体是"箱业务表"，所以现在都从箱的视角出发。
+	//2.1、为什么不考虑'装船'操作？ 因为'装船'操作有可能同一条驳船又装，又卸，不好判断。所以只用上面三个条件足以判断出这个箱是在船，还是在场。只要不满足上面的三个条件的，就可以判断为'在船'或是不管它在其它什么天上地下所在。只要它做了'卸船'这个操作，就可以判定它为在场。
+       WHEN '在船' and tab.busi_type='import' THEN ( //2.2、判定为在场后，再根据'业务表进出口类型'字段“busi_type”判断是进口还是出口。
+       		CASE WHEN op.opttype='装船' and tab.outvesselname=op.avesselname and tab.outboundvoy=op.boundvoy THEN bs.avesselname 
+            ELSE ss.avesselname END  //2.3、判断为在船，又是进口，说明既然都‘在船’了，不是在大船就是在驳船。用'操作类型是'装船'和'船名','船航次'字段即可判断在驳船上，取驳船的船名。否则就在大船上，取大船船名。
+	//2.4、因为 用'op.opttype '最新时间操作表数据的操作类型是'装船'，一个箱子在最新的时间内，只能执行一种操作。用操作表的船名跟航次，与箱业务表的代表驳船的二程船名和航次相连。如果有数据，即是在驳船上，因为在进口流程，而且最新时间内还能执行'装船操作'的只会是驳船。用'卸船操作'可能就要考虑是大船卸还是驳船卸。所以我们先明确‘在驳船’这一种条件，就可以判断出‘在大船’。
        )
        WHEN '在船' and tab.busi_type='export' THEN(
-     		CASE WHEN op.opttype='装船' and tab.outvesselname=op.avesselname and tab.outboundvoy=op.boundvoy THEN bs.avesselname
-            ELSE bsjm.avesselname END 
+     		CASE WHEN op.opttype='装船' and tab.outvesselname=op.avesselname and tab.outboundvoy=op.boundvoy THEN bs.avesselname 
+            ELSE bsjm.avesselname END //2.5、用'操作类型是'装船'和'船名','船航次'字段即可判断在招商的驳船上，取船名。否则就在江门的驳船上，取船名。也是用这个条件判定：即使在出口流程，而且最新时间内还能执行'装船操作'，而且数据源是招商港口的箱业务信息表的二程船和航次有数据，则就在招商驳船上。另外的就在江门的驳船上。。。出口不论大船。
        )
-       ELSE null END ) currentShipName, //2、响应字段“所在船名”的判断条件有点复杂。
+       ELSE null END ) currentShipName,  //2.6、当是"在场"情况的时候，就不知道是在码头放着还是在集装箱卡车上放着了。所以当前船名不用填，直接为null即可！
 
 	(CASE (CASE op.opttype WHEN '卸船' THEN '在场' WHEN '入闸' THEN '在场' WHEN '出闸' THEN '在场' ELSE '在船' END )
        WHEN '在船' and tab.busi_type='import' THEN (
@@ -326,10 +323,16 @@ public class ContInfoQueryReq{
 	 ...=   req.isovertop
 	 ...=   req.emptyfull
      <if test="req.reportFlag == 'Y'.toString()">
-     	and bc.terminalcode is not null
+     	and (select count(*) from block_record_barge_cfmeta bc 
+     		where bc.avesselname = bs.avesslename
+     		 and ifnull(bc.inboundvoy,'')=ifnull(bs.inboundvoy,'') 
+              and ifnull(bc.outboundvoy,'')=ifnull(bs.outboundvoy,'')) > 0
 	 </if>
      <if test="req.reportFlag == 'N'.toString()">
-     	and bc.terminalcode is null
+     	and (select count(*) from block_record_barge_cfmeta bc 
+     		where bc.avesselname = bs.avesslename
+     		 and ifnull(bc.inboundvoy,'')=ifnull(bs.inboundvoy,'') 
+              and ifnull(bc.outboundvoy,'')=ifnull(bs.outboundvoy,'')) <= 0
 	 </if>
 	 ...for req.terminalcodeArr
 </sql>

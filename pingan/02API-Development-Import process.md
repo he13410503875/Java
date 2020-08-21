@@ -552,7 +552,69 @@ private void generateBackData(DockFeedbackInfoResp back,BargeShipment dto,String
 
 
 
-### 进口流程步骤七、八、九、十-接口：（略）
+### 进口流程步骤七、八-接口：（略）
+
+
+
+
+
+### 进口流程步骤九：
+
+#### 提重，集装箱操作信息-接口：（跟步骤十作比较。）
+
+#### Mapper—Xml：
+
+```java
+<!-- 进口流程步骤九：提重，集装箱操作信息-->
+<select id="contOptinInfoWeightPRD" resultMap="BaseResultMap">
+	select 
+		<include refid="Cont_OptinInfo_List" />
+    from
+    	block_record_cont_optin tab
+    	left join block_record_cont_info inf
+      on (tab.containerno=inf.containerno and tab.do = inf.do
+      and inf.creator_org_id='SCCT')  //1、"操作表"跟"箱业务表"用"集装箱号containerno","提运单号do"，"上链机构"字段关联，数据源是招商。
+    <where>
+    	tab.creator_org_id='JM' //2、步骤九数据源是江门。
+    	and tab.opttype='出闸'
+    	and tab.emptyfull='F'  //3、提重：用集装箱卡车把"满了的"集装箱"出闸"运到船上。
+    	and tab.containerno = #{containerno}
+		and tab.do = #{DO}
+	</where>
+	order by tab.opttime desc //4、一系列操作肯定会有多条数据，直接降序排序取最新数据。
+</select>
+
+<!-- 进口流程步骤十：还空，集装箱操作信息-->
+<select id="contOptinInfoEmptyPRD" resultMap="BaseResultMap">
+	select
+		...
+    from
+    	block_record_cont_optin tab
+    	left join block_record_cont_info inf
+      on (tab.containerno = inf.containerno and tab.do = inf.do
+      and inf.creator_org_id = 'SCCT') 
+    <where>
+    	tab.creator_org_id='JM'
+        and tab.opttype='入闸'
+        and tab.emptyfull='E' //5、还空：用集装箱卡车把"空了的"集装箱"入闸"运回来码头。
+        and tab.containerno = #{containerno}
+	   and tab.do = #{DO}
+	</where>
+	order by tab.opttime desc
+</select>
+```
+
+##### Tips：
+
+> 1、问：箱业务表中，集装箱号加订舱单号或提运单号（containerno+bl/do），就包含了一组操作。为啥这么说？
+>
+> 答：因为在大环境下是进口流程来说，大船从外面进口招商港口，操作表就记录卸船。驳船从招商港口出口，操作表就记录装船。驳船进口江门港口，记录卸船操作。在码头的时候，箱子满了，就需要集装箱大卡车"出闸"运到船上。操作表记录提重操作。箱子空了，需要大卡车“入闸”运回码头。操作表记录还空操作。如上，这就包含五个操作了！
+
+
+
+### 进口流程步骤十：
+
+#### 还空，集装箱操作信息-接口：（跟步骤九作比较，如上。）
 
 
 
