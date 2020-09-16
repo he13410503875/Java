@@ -57,7 +57,12 @@ public class LoginReq{
 
 #### Service -> ServiceImpl 层：
 
+##### PortSysServiceImpl.java:
+
 ```java
+@Value("$sys.blockchain.id")
+private String sysBlockchainId;
+
 @Override
 public UserQueryResp login(LoginReq loginReq){
     // 1、登录图片验证码
@@ -106,7 +111,7 @@ public UserQueryResp login(LoginReq loginReq){
     
     return loginUser;
 }
-
+44
 
 /** 
   * 校验图片验证码
@@ -164,9 +169,62 @@ private void checkUserNamePwd(String userName, String userPassword) { //6.1、�
 
 
 
+##### PortSysUserServiceImpl.java:
 
+承接上面第8步：获取数据库中用户的信息.
 
+```java
+@Override
+public UserQueryResp detailByUserName(String userName) { //8.1、写好方法名和形参。
+    userName = Optional.ofNullable(userName).orElseThrow(() ->  
+                                   ServiceException.of(ExceptionEnum.USER_NAME_NULL));
+    PortSysUser sysUser = this.userMapper.selectDetailByUserName(userName); //8.2、调用mapper层方法，获取用户数据。
+    log.info("sysUser={}", JSON.toJSONString(sysUser));
+    UserQueryResp userQueryResp = this.mapping.entityToResp(sysUser);
+    // 8.3、处理角色集合+菜单按钮资源集合
+    this.assignRoleAndresource(sysUser, userQueryResp);
+    return userQueryResp;
+}
 
+/**
+  * 处理角色集合+菜单按钮资源集合
+  * @param sysUser
+  * @param userQueryResp
+  */
+private void assignRoleAndresource(PortSysUser sysUser, UserQueryResp userQueryResp) //8.3.1、承接上面8.3步，写好方法名和形参。
+    if(sysUser != null) {
+        if(!CollectionUtils.isEmpty(sysUser.getRoleList())) {
+            List<RoleQueryResp> roleList = sysUser.getRoleList().stream().map(role -> 
+this.mapping.roleToRoleQueryResp(role)).collect(Collectors.toList()); //8.3.2、取出"角色集合"列表数据。调用流stream() API，map和lambda表达式可用于映射每个元素到对应的结果。Collectors 可用于将流转换成集合和聚合元素，返回列表或字符串。这里把用户数据中的“角色数据库表实体类”，转化成“角色查询结果出参实体类”。
+            
+            Set<String> roleCodeSet = roleList.stream().
+map(RoleQueryResp∷getRoleCode).collect(Collectors.toSet()); //8.3.3、方法引用∷，引用了出参类的获取角色编码方法getRoleCode()。相当于lambda表达式，role -> RoleQueryResp.getRoleCode()的简化版。。引用的这个方法有时会不一样，但代替的都是匿名内部类里的方法。我认为这里是把"实体类"数据映射转化为角色编码数据。
+//RoleList列表数据是怎么来的？里面有几个数据？  答： 根据下面"用户数据"的sql语句可知。是把几个角色表里的字段映射进列表"角色集合"字段里。很可能列表字段里只有一个数据，所以取出的"角色编码"也只有一个数据。但也把他们放进了集合里。
+            userQueryResp.setRoleList(roleList);
+            userQUeryResp.setRoleCodeSet(roleCodeSet);  //8.3.4、保存"角色集合"和"角色编码"集合数据。
+        }
+        
+        if(!CollectionUtils.isEmpty(sysUser.getResourceList())) {
+            List<ResourceQueryResp> resourceList = sysUser.getResourceList().stream().map(
+resource -> this.mapping.resourceTOResourceQueryResp(resource)).
+collect(Collectors.toList()); //8.3.5、获取"菜单按钮集合"数据。
+            Set<String> permissionCodeSet = Sets.newLinkedHashSet();
+            resourceList.stream().map(ResourceQueryResp∷getPermissionCode).sorted(Comparator.naturalOrder()).forEach(PermissionCodeSet∷add); //8.3.6、从"菜单按钮资源查询结果出参实体类"里取出"权限编码"数据。sorted用于排序，Comparator.naturalOrder()(返回按照大小写字母排序的Comparator)，forEach用于迭代。
+            
+            userQueryResp.setResourceList(resourceList);
+            uwerQueryResp.setPermissionCodeSet(permissionCodeSet);  //8.3.4、保存"菜单按钮集合"和"权限编码"集合数据。
+        }
+    }
+}
+```
+
+###### Tips：
+
+> Lambda表达式使用方法：
+>
+> 1、一个方法的形参要传入接口对象。。把接口对象想象成匿名内部类，替代的就是这个。
+>
+> 2、直接（） ->  匿名内部类的方法。即可！函数式编程强调做什么，而不是怎么做？
 
 
 
