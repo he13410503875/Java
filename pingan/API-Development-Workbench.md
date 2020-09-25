@@ -251,7 +251,7 @@ public class PortWorkbenchServiceImpl implements PortWorkbenchService{ //2、实
 
 
 
-## 箱量统计(切换系统)：
+## 箱量统计(切换港口系统)：
 
 #### controller层：
 
@@ -470,6 +470,10 @@ public BigDecimal percentCalculateTwo(String terminal){ //4.7、江门码头的�
 }
 ```
 
+###### Tips：
+
+> 1、当一个页面里有太多sql语句的时候，用日志语句把哪个sql执行的是哪个给标好，不然测试不知道哪个查的是哪个。
+
 
 
 #### Mapper：
@@ -563,6 +567,10 @@ BigDecimal queryUnloadedBoxByDock(@Param("terminal") String terminal, @Param("po
   </select>  //5、也是用判断和循环，分辨系统作不同操作。发现在业务上要分不同的系统，只需要在xml的sql加这些判断语句跟循环语句即可！
 ```
 
+#### 测试：
+
+​        测试不同港口的数据，可以修改配置文件application-dev.properties里的PORT_SCCT属性值。修改为PORT_JM即可。为什么可以这样测呢？因为开发环境下，不同港口系统的数据都同时存在于开发数据库里。当部署的时候数据就会分开。
+
 
 
 ## 船艘次统计：（略）
@@ -575,11 +583,13 @@ BigDecimal queryUnloadedBoxByDock(@Param("terminal") String terminal, @Param("po
 
 
 
+## 不同的港口，代码是怎么部署的？
 
+1、多港口模式下，前端页面不用根据不同港口写不同的匹配路径，全部进入后台再判断。所以不同的港口，江门港口，深圳港口，前端都是同一套代码，后端也是同一套代码，只是后端代码逻辑里有不同港口的判断。这样两个港口，就要在不同服务器上步两次。
 
+2、配置文件里的数据库账户密码信息啊，港口信息啊，端口号都不一样，谁去修改呢？
 
-
-
+​	是测试“刘成”，把配置java文件写在了config文件夹下，再分jm，scct，sd文件夹，然后各自写不同的配置信息。可能是类似于蛇口一样，不同的服务器打包文件旁边有不同配置类的文件夹。
 
 
 

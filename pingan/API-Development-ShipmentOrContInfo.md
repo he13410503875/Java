@@ -888,5 +888,3 @@ compareTo（new BigDecimal（0））==0 写法也可！
 
 
 
-
-
