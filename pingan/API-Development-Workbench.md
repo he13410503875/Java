@@ -589,7 +589,7 @@ BigDecimal queryUnloadedBoxByDock(@Param("terminal") String terminal, @Param("po
 
 2、配置文件里的数据库账户密码信息啊，港口信息啊，端口号都不一样，谁去修改呢？
 
-​	是测试“刘成”，把配置java文件写在了config文件夹下，再分jm，scct，sd文件夹，然后各自写不同的配置信息。可能是类似于蛇口一样，不同的服务器打包文件旁边有不同配置类的文件夹。
+​	是测试“刘成”，把配置java文件写在了config文件夹下，再分jm，scct，sd文件夹，然后各自写不同的配置信息。可能是类似于蛇口一样，不同的服务器打包文件旁边有不同配置类的文件夹。因为springboot部署时有配置文件的优先级存在。mapper文件也可以部署在jar包外，可以设置配置文件里mapper的引入设置。
 
 
 
