@@ -1,5 +1,7 @@
 # Customs-project：
 
+##  金融壹账通企业金融服务中心跨境贸易智慧监管及物流团队
+
 ## 需求1：深圳海关
 
 去深圳海关现场支持工作，把海关网页上的“导出”按钮给禁用掉。
@@ -65,6 +67,24 @@ public ResultBase<PageResp<ContInfoQueryResp>> page(
 ## 需求2：蛇口-亿康
 
 需求：完成邮件发送接口开发，集成在港口模块中！
+
+### Config层：
+
+application.properties
+
+```properties
+#E-mail邮箱配置
+spring.mail.host=smtp.126.com
+spring.mail.protocol=smtps
+spring.mail.username=he13410503875@126.com
+spring.mail.password=UEFMSVOSPMOTBUPZ
+#465是写smtps服务器，25写smtp。
+spring.mail.properties.mail.smtp.port=465 
+spring.mail.default-encoding=UTF-8
+spring.mail.from=he13410503875@126.com
+```
+
+
 
 ### Interface层:
 
@@ -183,34 +203,114 @@ public class IMailController implements IMailService { //2、新建一个Control
 > 解：1）与招商确认的邮箱配置已发公司邮箱，但招商云到邮箱服务器的网络不通，还需要招商金科同事与SCT网络同事对邮件服务器开墙，目前已提交申请。
 >
 > 2）邮件发送的接口要挪到dataex-server，因为只有这个服务器是与SCT相通，而且数据集成及公共服务都放在这里。
+>
+> 3）用非标机写好测试类测试邮件发送，却报错用不了，怎么办？我们还可以在启动类里写匹配方法去测试。。犀利！是哪
+>
+> 2、可以先在非标机上测试一下，自己发给自己邮件，看看能不能发送成功。用126邮箱 有时会报错：Got bad greeting from SMTP host: smtp.126.com, port: 465, response: [EOF]
+>
+> 解：如下图，要在126邮箱里开启这两个SMTP服务即可解决这报错。最后发邮件成功！
+>
+> ![1604308621120](F:\Java-Route\pingan\Customs-project-蛇口、顺德.assets\1604308621120.png)
+>
+> 3、测试发送Html邮件方法时的报错信息： 554 DT:SPM 126 smtp8,NORpCgDn9_cR3p9f3+wvMA--.2778S2 1604312594,please see http://mail.163.com/help/help_spam_16.htm?ip=210.83.240.178&hostid=smtp8&time=1604312594。
+>
+> 解：一直被126邮箱视为垃圾邮件，所以发送不成功。。在126里设置了白名单还是没用。所以接收人就不写126了，发送给两个QQ邮箱即可！如下图启动类里。
+>
+> ![1604312738264](F:\Java-Route\pingan\Customs-project-蛇口、顺德.assets\1604312738264.png)
 
 
 
-
-
-## 需求三：暂时手动导入顺德出口数据，为上链做准备。
+## 需求三：从Excel表手动导入顺德出口数据，为上链做准备。
 
 > 需求：出口货物用驳船运往蛇口，装上大船，再出口到顺德（大船才能出口运输）。。蛇口出口数据可以自动同步数据，我们不用管，但是顺德的出口数据没有做程序处理，所以暂时手动输入数据。因为领导可能在等我们输入的数据，所以以后顺德数据也是会做程序化处理的。导入完毕，会自动上链。
->
-> 
 
-##### 1、业务会发一个如下图的数据表。
 
-![1603334027114](F:\Java-Route\pingan\Customs-project-蛇口、顺德.assets\1603334027114.png)
 
-图序1：表名。
+#### 1、把Excel表导入数据库。
 
-图序2：要插入数据的五张表名。第六张表不管，里面没写数据。
+业务会发两张Excel表：containers，berthplan。
 
-图序3：根据表中给的箱号、订舱单号、提运单号 一一对应填入数据库表中。
+1) 点击Navicat的“导入向导” --> “*.xls”格式 -->  选择 containers.xls文件 --> 一直点下一步，直到目标表出现，改目标表名字 --> 
 
-图序4：containerid 用浏览器的时间戳在线转换工具填入。
+出现全部字段类型都是varchar ，长度都是255。如果直接点下一步开始执行，会报错。一整行字段列表的长度超过了最大值。--> 可以修改类型为text，长度全删，为空。-->
 
-图序5：有些中文值是使用"转化后的值"。但是有时候"转化后的值"会超出数据库表中字段约束的大小范围，跟顺德业务沟通，看他们跟蛇口怎么做转换。
+再下一步-开始。成功！ 注意：如果表Excel表字段超过180-200个之间，也会创建Excel表失败。。。就像berthplan.xls表格。所以可以把它分成两个Excel表格来导入。
 
-图序6：船名要注意，要保留空格。
 
-图序7：只有一个值的，说明插入数据时都是用一样的值。
+
+#### 2、根据核心字段对比列表写好这6张表的 insert into 语句。
+
+```sql
+--block_track_cont_info：
+
+insert into block_track_cont_info (
+containerid,containerno,bl,do,containertype,containersize,containerowner,inaim,inowner,
+invesselname,invesselcode,inboundvoy,outboundvoy,pol,tpod,pod,finalport,    isdamage,
+emptyfull,grossweight,vermasweight,  isimdg,    vesselcompanysealno,stampno,gradeid,batchno,lastupdatetime, busi_type,process_status,sync_version,creator_org_id)
+SELECT 
+c.containerid,c.CONTAINERNO,c.bl,c.do,c.containertype,c.CONTAINERSIZE,c.CONTAINEROWNER,c.INAIM,b1.`OWNER`,
+b1.EVESSELNAME,'',b1.inboundvoy, b1.outboundvoy,c.pol,c.pol,c.pod,c.FINALPORT,  'N', 
+c.EMPTYFULL,c.GROSSWEIGHT,c.GROSSWEIGHT,    'N',c.VESSELCOMPANYSEALNO,'QKL',c.GRADEID,c.BATCHNO,NOW(), 'export','1',c.GROSSWEIGHT,'JM'--1、这里c.vesselcompanysealno对应着 上面的sync_version，因为是个主键，值不能重复。又找不到方法插入不同的值，所以先把有不同值的字段取出，赋值给它。
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno;
+
+--block_track_cont_optout:
+
+insert into block_track_cont_optout (
+containerid,containerno,containerowner,do,bl,terminalcode,opttype,avesselname,boundvoy,
+emptyfull,isimdg,dangerlevel,ciqsealno,vesselcompanysealno,grossweight,vermasweight,setuptemp,temptype,
+specialstow,overtop,overfront,overbehind,overleft,overright,isdamage,process_status,sync_version,creator_org_id)
+SELECT 
+c.containerid,c.containerno,b1.owner,c.do,c.bl,c.terminalcode,'装船',b1.cvesselname,b1.outboundvoy,
+c.emptyfull,'N',c.dangerlevel,c.ciqsealno,c.vesselcompanysealno,c.grossweight,c.grossweight,c.setuptemp,c.temptype,
+c.specialstow,c.overtop,c.overfront,c.overbehind,c.overleft,c.overright, 'N' ,'1',c.VESSELCOMPANYSEALNO,'JM'
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno;
+
+--block_track_cont_release：
+
+insert into block_track_cont_release (
+containerid,containerno,containerowner,do,bl,relstate,lastupdatetime,process_status,sync_version,creator_org_id)
+SELECT
+c.containerid,c.containerno,b1.owner,c.do,c.bl,'R',now(),'1',c.VESSELCOMPANYSEALNO,'JM'
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno;
+
+--block_track_barge_shipment：
+
+insert into block_track_barge_shipment (
+berthplanno,cvesselname,avesselname,owner,agent,barge_tel,imo,inboundvoy,outboundvoy,invessellinecode,
+outvessellinecode,inbusinessvoy,outbusinessvoy,bargestartport,lastport,nextport,bargeendport,
+bargeworkseq,memo,eta_time,atb_time,atd_time,bargefeetype,bargerobcount,bargerobweight,isbargefee,isbargeovervolume,isbargeoverweight,
+inmemo,outmemo,hotbox,close_time,lastupdatetime,terminalcode,   inaim,businesscode,containerowner,process_status,sync_version,creator_org_id)
+SELECT
+-- 注意： agent -> inagent或outagent 
+b1.berthplanno,b1.cvesselname,b1.avesselname,b1.owner,b1.outagent,b1.barge_tel,b1.imo,b1.inboundvoy,b1.outboundvoy,b1.invessellinecode,
+b1.outvessellinecode,b1.inbusinessvoy,b1.outbusinessvoy,b1.bargestartport,b1.lastport,b1.nextport,b1.bargeendport,
+b1.bargeworkseq,b1.memo,b1.eta_time,b1.atb_time,b1.atd_time,b1.bargefeetype,b1.bargerobcount,b1.bargerobweight,b1.isbargefee,b1.isbargeovervolume,b1.isbargeoverweight,
+b1.inmemo,b1.outmemo,b1.hotbox,b1.close_time,now(),b1.terminalcodes, c.inaim,c.businesscode,c.containerowner,'1',c.vesselcompanysealno,'JM'
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno;
+
+--block_track_ship_option
+
+insert into block_track_ship_option (
+berthplandetailid,berthplanno,vesseltype,avesselname,inboundvoy,outboundvoy,terminalcode,berthno,qcnos,
+atb_time,ats_d,atc_d,ats_l,atc_l,atd_time,lastupdatetime,sync_version,process_status,creator_org_id
+)
+-- 注意：ats_d,atc_d,ats_l,atc_;. 
+SELECT 
+b1.berthplandetailid,b1.BERTHPLANNO,b1.VESSELTYPE,b1.AVESSELNAME,b1.INBOUNDVOY,b1.OUTBOUNDVOY,b1.TERMINALCODES,b1.BERTHNO,'',
+b1.ATB_TIME, now(),now(),now(),now(),b1.ATD_TIME,now(),c.VESSELCOMPANYSEALNO,'1','JM'
+
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno;
+
+insert into block_track_barge_cfmeta (
+avesselname,inboundvoy,outboundvoy,terminalcode,etaconfirmtime,process_status,sync_version,creator_org_id,data_id
+)
+-- 注意：ats_d,atc_d,ats_l,atc_;. 
+SELECT 
+ b1.AVESSELNAME,b1.INBOUNDVOY,b1.OUTBOUNDVOY,b1.TERMINALCODES,now(),'1',c.VESSELCOMPANYSEALNO,'JM',c.VESSELCOMPANYSEALNO
+FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.outberthplanno=b1.berthplanno group by b1.AVESSELNAME,b1.INBOUNDVOY,b1.OUTBOUNDVOY,b1.TERMINALCODES;
+```
+
+
 
 
 
@@ -228,17 +328,33 @@ public class IMailController implements IMailService { //2、新建一个Control
 
 4和5、都是用时间戳的值。
 
-6、上链机构一定不能填错，顺德暂时用江门 (JM)。
+6、上链机构一定不能填错，顺德暂时用沿江 (JM)。
 
 > Tips：
 >
 > 1、问：数据对碰的时候船名是不会自动处理空格的，所以会导致空格少了的问题。这样我们可能就要再操作一次导入数据，再重新上链，就会很麻烦。
 >
 > 解：所以我们一般不重新操作导入。比如哪条数据船名错了，我们改正确之后。把那条数据的 sync_version 版本号改高一点，然后把 process_status 改为1 即可！
+>
+> 2、把字段跟数据都导出到Excel。
+>
+> 解：1、打开Navicat表格，选择一行数据之后右键，选择"复制为"。
+>
+> ​        2、点击"制表符分隔值（仅字段名）"，再Ctrl+v到Excel就可以把表格字段全部Copy下来。
+>
+> ​        3、选择"制表符分隔值（字段名和数据）"，再Ctrl+v就可以把表格字段和数据全Copy下来。
+>
+> 3、把招商云环境的表字段跟数据都下到本地数据库。
+>
+> 解：1、在Navicat "对象"界面多个勾选想要复制的表格，右键，选择"转储为SQL文件"。
+>
+> ​        2、点击 "结构和数据..."，保存xx.sql文件到桌面。打开文件，全选sql语句。
+>
+> ​        3、之后在本地执行sql语句，即可把表结构和数据复制到本地数据库。
 
 
 
-##### 3、从Excel表导入数据库。
+##### 3、从Excel表复制进数据库。
 
 如下图，注意Excel中每个字段都要选中。Ctrl+c复制。
 
@@ -271,6 +387,20 @@ public class IMailController implements IMailService { //2、新建一个Control
 3、把本地数据库里的数据导出为insert 的SQL语句，保存在记事本上 （insert.sql） 。然后在招商云网页上按下Ctrl+Alt+Shift，即可调出一个面板，点击 一个 uploadfile 上传按钮。选择我们 insert.sql文件，就可以从本地上传到招商云环境上。
 
 ​      同理，点击招商云环境里的 我的电脑，有个名字类似磁盘的点击打开，里面有个Download 下载文件夹。把标结构Excel表格放进去，即可用浏览器的下载功能下载到非标机本地中！
+
+4、打开江门数据库，打开对应的track表执行insert语句即可！
+
+![1603696251891](F:\Java-Route\pingan\Customs-project-蛇口、顺德.assets\1603696251891.png)
+
+
+
+
+
+## 四、部署在服务器上的注意事项：
+
+1、同一个包部署在不同的服务器上时，要注意两个包的配置文件里，数据库地址不要相同，否则会导致数据冲突！
+
+
 
 
 
