@@ -400,7 +400,9 @@ FROM `containers` c , berthplan01 b1 WHERE c.inberthplanno=b1.berthplanno or c.o
 
 1、同一个包部署在不同的服务器上时，要注意两个包的配置文件里，数据库地址不要相同，否则会导致数据冲突！
 
+2、数据库名不要手打，要复制粘贴。
 
+3、修改配置文件之前，要另存一份配置文件。
 
 
 
