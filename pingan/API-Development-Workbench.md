@@ -81,9 +81,9 @@ public class PortWorkbenchController{
 
 #### Service层：
 
-新建Intervice类。
+新建Interface类。
 
-##### Intervice：
+##### Interface：
 
 ```java
 /**
